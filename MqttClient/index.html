@@ -1,0 +1,130 @@
+<html>
+<head>
+<title>Mqtt Client</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <script src="js/mqttws31.min.js"></script>
+<style>
+    #message {
+        float: left;
+        width: calc(100% - 300px);
+        max-width: calc(100% - 300px);
+        min-width: calc(100% - 300px);
+        height: calc(100% - 20px);
+        min-height: calc(100% - 20px);
+        max-height: calc(100% - 20px);
+    }
+</style>
+</head>
+<body>
+<table style="float: left;width: 300px" border="0">
+    <tr>
+        <td>服务器</td>
+        <td>
+            <input type="text" id="serverIp" value="mqtt.zzwtt.cn">
+        </td>
+        <td>
+            <input type="text" id="serverPort" value="15675" style="width: 40px">
+        </td>
+    </tr>
+    <tr>
+        <td>客户端ID</td>
+        <td colspan="2">
+            <input type="text" id="clientId" value="webApp_5425419" style="width: 100%">
+        </td>
+    </tr>
+    <tr>
+        <td>订阅主题</td>
+        <td colspan="2">
+            <!-- city/changsha/trash/alarm -->
+            <!-- city/changsha/manhole_cover/alarm -->
+            <!-- city/changsha/door_window/alarm -->
+            <!-- city/changsha/fire_hydrant/alarm -->
+            <input type="text" id="subscribe" value="city/changsha/trash/alarm" style="width: 100%">
+        </td>
+    </tr>
+    <tr>
+        <td>最大显示</td>
+        <td colspan="2">
+            <input type="text" id="maxRecordCount" value="20" style="width: 100%">
+        </td>
+    </tr>
+    <tr>
+        <td>连接状态</td>
+        <td colspan="2">
+            <span id="status">未连接</span>
+        </td>
+    </tr>
+    <tr>
+        <td></td>
+        <td colspan="2">
+            <input type="button" id="connect" value="连接" style="width: 45%" onclick="onConnectBtn();">
+            <input type="button" id="disconnect" value="断开连接" style="width: 45%" onclick="onDisconnectBtn();">
+        </td>
+    </tr>
+</table>
+<textarea id="message" spellcheck="false"></textarea>
+
+<script>
+    var client = null;
+    var $serverIp = document.getElementById('serverIp');
+    var $serverPort = document.getElementById('serverPort');
+    var $clientId = document.getElementById('clientId');
+    var $status = document.getElementById('status');
+    var $subscribe = document.getElementById('subscribe');
+    var $message = document.getElementById('message');
+    var $maxRecordCount = document.getElementById('maxRecordCount');
+    var msgList = [];
+    var seq = 0;
+
+    
+    function guid() {
+        function S4() {
+            return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+        }
+        return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
+    }
+
+    $clientId.value = guid();
+
+    function onSuccess() {
+        $status.innerText = '连接成功';
+        client.subscribe($subscribe.value);
+    }
+
+    function onFailure() {
+        console.log('onFailure');
+        alert('onFailure');
+    }
+
+    function onMessageArrived(msg) {
+        while (msgList.length > parseInt($maxRecordCount.value)) {
+            msgList.pop();
+        }
+        seq++;
+        msgList.unshift(seq + ': ' + JSON.stringify(msg.payloadString));
+        $message.value = msgList.join('\n-----------------------------\n');
+    }
+
+    function onConnectionLost() {
+        $status.innerText = '连接断开';
+        alert('连接断开');
+    }
+
+    function onConnectBtn() {
+        if (client === null || !client.isConnected()) {
+            client = new Paho.MQTT.Client($serverIp.value, parseInt($serverPort.value), $clientId.value);
+            client.onMessageArrived = onMessageArrived;
+            client.connect({onSuccess: onSuccess, onFailure: onFailure});
+            client.onConnectionLost = onConnectionLost;
+        }
+    }
+
+    function onDisconnectBtn() {
+        if (client !== null && client.isConnected()) {
+            client.disconnect();
+        }
+//        $status.innerText = '连接断开';
+    }
+</script>
+</body>
+</html>
